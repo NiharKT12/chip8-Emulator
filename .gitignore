@@ -1,4 +1,9 @@
 .vscode/
 
-./chip8
+chip8
 
+# CHIP-8 ROM files
+*.ch8
+
+# Windows Zone.Identifier files
+*:Zone.Identifier
