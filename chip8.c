@@ -15,6 +15,8 @@ typedef struct{
 	uint32_t fg_color;
 	uint32_t bg_color;
 	uint32_t scale_factor; 	
+	bool pixel_outlines;
+	uint32_t inst_per_sec;
 }config_t;
 
 typedef enum{
@@ -80,6 +82,7 @@ bool set_config_from_args(config_t *config,const int argc, char **argv){
 		.fg_color = 0xFFFFFFFF,
 		.bg_color = 0x000000FF,
 		.scale_factor = 20,
+		.inst_per_sec = 500
 	};
 
 	for(int i=1;i<argc;i++){
@@ -782,6 +785,15 @@ void emulate_instruction(chip8_t *chip8,const config_t config){
 	}
 }
 
+void update_timer(chip8_t *chip8){
+	if(chip8->delay_timer > 0)
+		chip8->delay_timer--;
+	
+	if(chip8->sound_timer > 0){
+		chip8->sound_timer--; 
+	}
+}
+
 int main(int argc,char **argv){
 
 	if(argc < 2){
@@ -809,11 +821,19 @@ int main(int argc,char **argv){
 
 		if(chip8.state == PAUSED) continue;
 
-		emulate_instruction(&chip8,config);
+		const uint64_t start_frame_time = SDL_GetPerformanceCounter();
 
-		SDL_Delay(16);
+		for(uint32_t i=0;i<config.inst_per_sec/60;i++)
+			emulate_instruction(&chip8,config);
+
+		const uint64_t end_frame_time = SDL_GetPerformanceCounter();
+
+		const double time_elapsed = (double)((end_frame_time-start_frame_time)/1000)/SDL_GetPerformanceFrequency();
+
+		SDL_Delay(16.67f > time_elapsed ? 16.67f - time_elapsed : 0);
 
 		update_screen(sdl,config,chip8);
+		update_timer(&chip8);
 	}
 
 	final_cleanup(sdl);
